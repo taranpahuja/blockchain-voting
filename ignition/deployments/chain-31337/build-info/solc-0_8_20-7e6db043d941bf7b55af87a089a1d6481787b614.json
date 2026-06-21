@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-7e6db043d941bf7b55af87a089a1d6481787b614",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.9.0"
+  },
+  "userSourceNameMap": {
+    "contracts/Voting.sol": "project/contracts/Voting.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Voting.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\ncontract Voting {\r\n    // A structure representing a single candidate\r\n    struct Candidate {\r\n        uint256 id;\r\n        string name;\r\n        uint256 voteCount;\r\n    }\r\n\r\n    // A mapping acts like a dictionary or hash map.\r\n    // It maps an Ethereum address (voter) to a boolean (true/false) to track if they voted.\r\n    mapping(address => bool) public voters;\r\n\r\n    // An array to store all the candidates running in this election\r\n    Candidate[] public candidates;\r\n\r\n    // A counter to assign unique IDs to candidates\r\n    uint256 public candidatesCount;\r\n\r\n    // The owner/administrator of the election (the person who deploys the contract)\r\n    address public admin;\r\n\r\n    // Events allow external applications (like our frontend) to listen for actions on the blockchain\r\n    event Voted(uint256 indexed candidateId, address indexed voter);\r\n\r\n    // The constructor runs exactly ONCE when the contract is deployed\r\n    constructor(string[] memory _candidateNames) {\r\n        admin = msg.sender; // The person deploying the contract becomes the admin\r\n\r\n        // Loop through the provided names array and add them as candidates\r\n        for (uint256 i = 0; i < _candidateNames.length; i++) {\r\n            addCandidate(_candidateNames[i]);\r\n        }\r\n    }\r\n\r\n    // An internal helper function to register a candidate\r\n    function addCandidate(string memory _name) internal {\r\n        candidatesCount++;\r\n        candidates.push(Candidate(candidatesCount, _name, 0));\r\n    }\r\n\r\n    // The primary function for casting a vote\r\n    function vote(uint256 _candidateId) public {\r\n        // 1. REQUIRE that the voter has not voted before\r\n        require(!voters[msg.sender], \"Error: You have already cast your vote.\");\r\n\r\n        // 2. REQUIRE that the candidate ID is valid\r\n        require(_candidateId > 0 && _candidateId <= candidatesCount, \"Error: Invalid candidate selected.\");\r\n\r\n        // 3. Record that the voter has now voted\r\n        voters[msg.sender] = true;\r\n\r\n        // 4. Update the candidate's vote count\r\n        // Arrays are 0-indexed, so Candidate ID 1 is at index 0\r\n        candidates[_candidateId - 1].voteCount++;\r\n\r\n        // 5. Trigger the event notification\r\n        emit Voted(_candidateId, msg.sender);\r\n    }\r\n\r\n    // A helper function to fetch a specific candidate's details\r\n    function getCandidate(uint256 _candidateId) public view returns (Candidate memory) {\r\n        require(_candidateId > 0 && _candidateId <= candidatesCount, \"Invalid candidate ID.\");\r\n        return candidates[_candidateId - 1];\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}
