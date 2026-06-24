@@ -2,67 +2,75 @@
 pragma solidity ^0.8.20;
 
 contract Voting {
-    // A structure representing a single candidate
     struct Candidate {
         uint256 id;
         string name;
         uint256 voteCount;
     }
 
-    // A mapping acts like a dictionary or hash map.
-    // It maps an Ethereum address (voter) to a boolean (true/false) to track if they voted.
+    address public owner;
+    uint256 public votingStart;
+    uint256 public votingEnd;
+
+    mapping(uint256 => Candidate) public candidates;
     mapping(address => bool) public voters;
-
-    // An array to store all the candidates running in this election
-    Candidate[] public candidates;
-
-    // A counter to assign unique IDs to candidates
     uint256 public candidatesCount;
 
-    // The owner/administrator of the election (the person who deploys the contract)
-    address public admin;
+    // Events allow our React frontend to update in real-time
+    event VoteCast(address indexed voter, uint256 candidateId);
+    event CandidateAdded(uint256 candidateId, string name);
 
-    // Events allow external applications (like our frontend) to listen for actions on the blockchain
-    event Voted(uint256 indexed candidateId, address indexed voter);
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can perform this action");
+        _;
+    }
 
-    // The constructor runs exactly ONCE when the contract is deployed
-    constructor(string[] memory _candidateNames) {
-        admin = msg.sender; // The person deploying the contract becomes the admin
+    modifier votingActive() {
+        require(
+            block.timestamp >= votingStart && block.timestamp <= votingEnd,
+            "Voting is not currently active"
+        );
+        _;
+    }
 
-        // Loop through the provided names array and add them as candidates
+    // Constructor now takes candidates AND how long the election lasts (in minutes)
+    constructor(string[] memory _candidateNames, uint256 _durationInMinutes) {
+        owner = msg.sender;
+        votingStart = block.timestamp;
+        votingEnd = block.timestamp + (_durationInMinutes * 1 minutes);
+
         for (uint256 i = 0; i < _candidateNames.length; i++) {
             addCandidate(_candidateNames[i]);
         }
     }
 
-    // An internal helper function to register a candidate
-    function addCandidate(string memory _name) internal {
+    function addCandidate(string memory _name) public onlyOwner {
         candidatesCount++;
-        candidates.push(Candidate(candidatesCount, _name, 0));
+        candidates[candidatesCount] = Candidate(candidatesCount, _name, 0);
+        emit CandidateAdded(candidatesCount, _name);
     }
 
-    // The primary function for casting a vote
-    function vote(uint256 _candidateId) public {
-        // 1. REQUIRE that the voter has not voted before
-        require(!voters[msg.sender], "Error: You have already cast your vote.");
+    function vote(uint256 _candidateId) public votingActive {
+        require(!voters[msg.sender], "You have already voted.");
+        require(
+            _candidateId > 0 && _candidateId <= candidatesCount,
+            "Invalid candidate ID."
+        );
 
-        // 2. REQUIRE that the candidate ID is valid
-        require(_candidateId > 0 && _candidateId <= candidatesCount, "Error: Invalid candidate selected.");
-
-        // 3. Record that the voter has now voted
         voters[msg.sender] = true;
+        candidates[_candidateId].voteCount++;
 
-        // 4. Update the candidate's vote count
-        // Arrays are 0-indexed, so Candidate ID 1 is at index 0
-        candidates[_candidateId - 1].voteCount++;
-
-        // 5. Trigger the event notification
-        emit Voted(_candidateId, msg.sender);
+        // Broadcast the vote to the network
+        emit VoteCast(msg.sender, _candidateId);
     }
 
-    // A helper function to fetch a specific candidate's details
-    function getCandidate(uint256 _candidateId) public view returns (Candidate memory) {
-        require(_candidateId > 0 && _candidateId <= candidatesCount, "Invalid candidate ID.");
-        return candidates[_candidateId - 1];
+    function getCandidate(
+        uint256 _candidateId
+    ) public view returns (Candidate memory) {
+        return candidates[_candidateId];
+    }
+
+    function getVotingStatus() public view returns (bool) {
+        return (block.timestamp >= votingStart && block.timestamp <= votingEnd);
     }
 }

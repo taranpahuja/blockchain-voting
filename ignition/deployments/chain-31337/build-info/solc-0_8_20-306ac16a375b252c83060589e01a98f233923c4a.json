@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_20-306ac16a375b252c83060589e01a98f233923c4a",
+  "solcVersion": "0.8.20",
+  "solcLongVersion": "0.8.20+commit.a1b79de6",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.9.0"
+  },
+  "userSourceNameMap": {
+    "contracts/Voting.sol": "project/contracts/Voting.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Voting.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\ncontract Voting {\r\n    struct Candidate {\r\n        uint256 id;\r\n        string name;\r\n        uint256 voteCount;\r\n    }\r\n\r\n    address public owner;\r\n    uint256 public votingStart;\r\n    uint256 public votingEnd;\r\n\r\n    mapping(uint256 => Candidate) public candidates;\r\n    mapping(address => bool) public voters;\r\n    uint256 public candidatesCount;\r\n\r\n    // Events allow our React frontend to update in real-time\r\n    event VoteCast(address indexed voter, uint256 candidateId);\r\n    event CandidateAdded(uint256 candidateId, string name);\r\n\r\n    modifier onlyOwner() {\r\n        require(msg.sender == owner, \"Only the owner can perform this action\");\r\n        _;\r\n    }\r\n\r\n    modifier votingActive() {\r\n        require(block.timestamp >= votingStart && block.timestamp <= votingEnd, \"Voting is not currently active\");\r\n        _;\r\n    }\r\n\r\n    // Constructor now takes candidates AND how long the election lasts (in minutes)\r\n    constructor(string[] memory _candidateNames, uint256 _durationInMinutes) {\r\n        owner = msg.sender;\r\n        votingStart = block.timestamp;\r\n        votingEnd = block.timestamp + (_durationInMinutes * 1 minutes);\r\n\r\n        for (uint256 i = 0; i < _candidateNames.length; i++) {\r\n            addCandidate(_candidateNames[i]);\r\n        }\r\n    }\r\n\r\n    function addCandidate(string memory _name) public onlyOwner {\r\n        candidatesCount++;\r\n        candidates[candidatesCount] = Candidate(candidatesCount, _name, 0);\r\n        emit CandidateAdded(candidatesCount, _name);\r\n    }\r\n\r\n    function vote(uint256 _candidateId) public votingActive {\r\n        require(!voters[msg.sender], \"You have already voted.\");\r\n        require(_candidateId > 0 && _candidateId <= candidatesCount, \"Invalid candidate ID.\");\r\n\r\n        voters[msg.sender] = true;\r\n        candidates[_candidateId].voteCount++;\r\n\r\n        // Broadcast the vote to the network\r\n        emit VoteCast(msg.sender, _candidateId);\r\n    }\r\n\r\n    function getCandidate(uint256 _candidateId) public view returns (Candidate memory) {\r\n        return candidates[_candidateId];\r\n    }\r\n\r\n    function getVotingStatus() public view returns (bool) {\r\n        return (block.timestamp >= votingStart && block.timestamp <= votingEnd);\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}

@@ -1,11 +1,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-// Define the initial candidates for our election
-const CANDIDATES = ["Alice", "Bob", "Charlie"];
-
 const VotingModule = buildModule("VotingModule", (m) => {
-  // Deploy the 'Voting' contract and pass the candidates array to the constructor
-  const voting = m.contract("Voting", [CANDIDATES]);
+  const candidates = ["Alice", "Bob", "Charlie"];
+  const durationInMinutes = 120; // Election runs for 2 hours
+
+  // Deploy with both arguments
+  const voting = m.contract("Voting", [candidates, durationInMinutes]);
 
   return { voting };
 });
